@@ -2,6 +2,7 @@ import { app, shell } from "electron";
 import electronDebug from "electron-debug";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
+import path from "node:path";
 import { setAutoLauch } from "./lib/auto-launch";
 import { initBreaks } from "./lib/breaks";
 import "./lib/ipc";
@@ -9,6 +10,30 @@ import { showNotification } from "./lib/notifications";
 import { getAppInitialized } from "./lib/store";
 import { initTray } from "./lib/tray";
 import { createSettingsWindow, createSoundsWindow } from "./lib/windows";
+
+const RELEASE_REPO_URL =
+  "https://github.com/fanxinliuchen/breaktimer-app/releases/latest";
+
+function isWindowsPortableBuild(): boolean {
+  return process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
+}
+
+function configurePortableRuntime(): void {
+  if (!isWindowsPortableBuild()) {
+    return;
+  }
+
+  const portableDataDir = path.join(
+    process.env.PORTABLE_EXECUTABLE_DIR as string,
+    "BreakTimerData",
+  );
+
+  // Keep portable settings/logs isolated from installed app data.
+  app.setPath("userData", portableDataDir);
+  log.info(`Portable mode enabled. userData path: ${portableDataDir}`);
+}
+
+configurePortableRuntime();
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -32,9 +57,9 @@ if (!gotTheLock) {
 function getDownloadUrl(): string {
   switch (process.platform) {
     case "win32":
-      return "https://github.com/tom-james-watson/breaktimer-app/releases/latest/download/BreakTimer.exe";
+      return `${RELEASE_REPO_URL}/download/BreakTimer.exe`;
     case "linux":
-      return "https://github.com/tom-james-watson/breaktimer-app/releases/latest";
+      return RELEASE_REPO_URL;
     default:
       throw new Error("Download URL should not be called for macOS");
   }
@@ -45,6 +70,19 @@ function shouldAutoInstall(): boolean {
   const isLinux = process.platform === "linux";
 
   return isMac || isLinux;
+}
+
+function shouldCheckForUpdates(): boolean {
+  if (process.env.NODE_ENV === "development") {
+    return false;
+  }
+
+  // Portable Windows builds should not self-update into installed binaries.
+  if (isWindowsPortableBuild()) {
+    return false;
+  }
+
+  return true;
 }
 
 function checkForUpdates(): void {
@@ -147,7 +185,7 @@ app.on("ready", async () => {
   initTray();
   createSoundsWindow();
 
-  if (process.env.NODE_ENV !== "development") {
+  if (shouldCheckForUpdates()) {
     checkForUpdates();
   }
 });
