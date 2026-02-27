@@ -135,7 +135,7 @@ export function buildTray(): void {
     dialog.showMessageBox({
       title: t("tray.about.title"),
       type: "info",
-      message: `BreakTimer`,
+      message: `番茄钟（BreakTimer）`,
       detail: t("tray.about.detail", { version: packageJson.version }),
     });
   };
