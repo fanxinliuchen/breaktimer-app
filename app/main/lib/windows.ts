@@ -47,8 +47,8 @@ export function createSettingsWindow(): void {
   settingsWindow = new BrowserWindow({
     title: translate(settings.language, "window.settings.title"),
     show: false,
-    width: 580,
-    minWidth: 580,
+    width: 650,
+    minWidth: 650,
     height: 625 + (process.platform === "win32" ? 40 : 0),
     minHeight: 625 + (process.platform === "win32" ? 40 : 0),
     autoHideMenuBar: true,
