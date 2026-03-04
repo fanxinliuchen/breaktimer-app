@@ -6,11 +6,12 @@ import { endPopupBreak } from "./breaks";
 import { getSettings } from "./store";
 
 let settingsWindow: BrowserWindow | null = null;
+let welcomeWindow: BrowserWindow | null = null;
 let soundsWindow: BrowserWindow | null = null;
 let breakWindows: BrowserWindow[] = [];
 
 const getBrowserWindowUrl = (
-  page: "settings" | "sounds" | "break",
+  page: "settings" | "welcome" | "sounds" | "break",
   windowId?: number,
 ): string => {
   const windowParam = windowId !== undefined ? `&windowId=${windowId}` : "";
@@ -29,6 +30,9 @@ export function getWindows(): BrowserWindow[] {
   if (settingsWindow !== null) {
     windows.push(settingsWindow);
   }
+  if (welcomeWindow !== null) {
+    windows.push(welcomeWindow);
+  }
   if (soundsWindow !== null) {
     windows.push(soundsWindow);
   }
@@ -37,6 +41,10 @@ export function getWindows(): BrowserWindow[] {
 }
 
 export function createSettingsWindow(): void {
+  if (welcomeWindow && !welcomeWindow.isDestroyed()) {
+    welcomeWindow.close();
+  }
+
   if (settingsWindow) {
     settingsWindow.show();
     return;
@@ -84,6 +92,50 @@ export function createSettingsWindow(): void {
 
   settingsWindow.on("closed", () => {
     settingsWindow = null;
+  });
+}
+
+export function createWelcomeWindow(): void {
+  if (welcomeWindow) {
+    welcomeWindow.show();
+    welcomeWindow.focus();
+    return;
+  }
+
+  const settings = getSettings();
+
+  welcomeWindow = new BrowserWindow({
+    title: translate(settings.language, "welcome.title"),
+    show: false,
+    width: 440,
+    height: 260 + (process.platform === "win32" ? 30 : 0),
+    minWidth: 440,
+    minHeight: 260 + (process.platform === "win32" ? 30 : 0),
+    resizable: false,
+    maximizable: false,
+    autoHideMenuBar: true,
+    icon:
+      process.env.NODE_ENV === "development"
+        ? path.join(__dirname, "../../../resources/tray/icon.png")
+        : path.join(process.resourcesPath, "app/resources/tray/icon.png"),
+    webPreferences: {
+      devTools: true,
+      preload: path.join(__dirname, "../../renderer/preload.js"),
+    },
+  });
+
+  welcomeWindow.loadURL(getBrowserWindowUrl("welcome"));
+
+  welcomeWindow.on("ready-to-show", () => {
+    if (!welcomeWindow) {
+      throw new Error('"welcomeWindow" is not defined');
+    }
+    welcomeWindow.show();
+    welcomeWindow.focus();
+  });
+
+  welcomeWindow.on("closed", () => {
+    welcomeWindow = null;
   });
 }
 

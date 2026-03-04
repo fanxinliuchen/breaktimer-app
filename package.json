@@ -113,6 +113,10 @@
         "nsis"
       ]
     },
+    "nsis": {
+      "artifactName": "${productName}-Setup.${ext}",
+      "createDesktopShortcut": "always"
+    },
     "linux": {
       "target": [
         "AppImage",

@@ -1,6 +1,7 @@
 import { app, dialog, Menu, Tray } from "electron";
 import log from "electron-log";
 import moment from "moment";
+import fs from "node:fs";
 import path from "path";
 import packageJson from "../../../package.json";
 import { translate } from "../../i18n";
@@ -28,6 +29,30 @@ const resourcesPath =
   process.platform === "darwin"
     ? path.resolve(rootPath, "..", "Resources")
     : rootPath;
+
+function resolveTrayIconPath(): string {
+  const iconFile =
+    process.platform === "darwin" ? "tray-IconTemplate.png" : "icon.png";
+
+  const candidates =
+    process.env.NODE_ENV === "development"
+      ? [path.resolve(process.cwd(), "resources", "tray", iconFile)]
+      : [
+          // Packaged app
+          path.join(resourcesPath, "tray", iconFile),
+          path.join(app.getAppPath(), "..", "tray", iconFile),
+          // Local production run: `electron ./app/main/dist/main.prod.js`
+          path.resolve(process.cwd(), "resources", "tray", iconFile),
+        ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[candidates.length - 1];
+}
 
 function checkDisableTimeout() {
   const disableEndTime = getDisableEndTime();
@@ -67,19 +92,7 @@ function getDisableTimeRemaining(language: UiLanguage): string {
 
 export function buildTray(): void {
   if (!tray) {
-    let imgPath;
-
-    if (process.platform === "darwin") {
-      imgPath =
-        process.env.NODE_ENV === "development"
-          ? "resources/tray/tray-IconTemplate.png"
-          : path.join(resourcesPath, "tray", "tray-IconTemplate.png");
-    } else {
-      imgPath =
-        process.env.NODE_ENV === "development"
-          ? "resources/tray/icon.png"
-          : path.join(app.getAppPath(), "..", "tray", "icon.png");
-    }
+    const imgPath = resolveTrayIconPath();
 
     tray = new Tray(imgPath);
 

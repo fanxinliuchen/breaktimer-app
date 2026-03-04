@@ -9,7 +9,11 @@ import "./lib/ipc";
 import { showNotification } from "./lib/notifications";
 import { getAppInitialized } from "./lib/store";
 import { initTray } from "./lib/tray";
-import { createSettingsWindow, createSoundsWindow } from "./lib/windows";
+import {
+  createSettingsWindow,
+  createSoundsWindow,
+  createWelcomeWindow,
+} from "./lib/windows";
 
 const RELEASE_REPO_URL =
   "https://github.com/fanxinliuchen/breaktimer-app/releases/latest";
@@ -38,15 +42,15 @@ configurePortableRuntime();
 const gotTheLock = app.requestSingleInstanceLock();
 
 app.on("second-instance", (event, commandLine, workingDirectory) => {
-  log.info("Second instance detected, opening settings window");
+  log.info("Second instance detected, opening welcome window");
   log.info(`Command line: ${commandLine}`);
   log.info(`Working directory: ${workingDirectory}`);
-  createSettingsWindow();
+  createWelcomeWindow();
 });
 
 app.on("activate", () => {
-  log.info("App activated, opening settings window");
-  createSettingsWindow();
+  log.info("App activated, opening welcome window");
+  createWelcomeWindow();
 });
 
 if (!gotTheLock) {
@@ -57,7 +61,7 @@ if (!gotTheLock) {
 function getDownloadUrl(): string {
   switch (process.platform) {
     case "win32":
-      return `${RELEASE_REPO_URL}/download/BreakTimer.exe`;
+      return `${RELEASE_REPO_URL}/download/BreakTimer-Setup.exe`;
     case "linux":
       return RELEASE_REPO_URL;
     default:
@@ -174,11 +178,11 @@ app.on("ready", async () => {
     if (process.env.NODE_ENV !== "development") {
       setAutoLauch(true);
     }
-    // Show settings window on first launch instead of notification
+    // First launch: show settings and onboarding.
     createSettingsWindow();
-    // Don't set app as initialized yet - we'll do that after the user dismisses the modal
   } else {
-    // App has been initialized before, don't show settings automatically
+    // Subsequent launches: show welcome window directly.
+    createWelcomeWindow();
   }
 
   initBreaks();
